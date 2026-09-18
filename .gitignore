@@ -1,0 +1,25 @@
+# Local credentials and generated content
+.env
+.env.*
+!.env.example
+data/
+exports/
+local_audio/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+.venv/
+.coverage
+.coverage.*
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+*.egg-info/
+node_modules/
+.idea/
+.vscode/
+*.log
+Thumbs.db
+Desktop.ini

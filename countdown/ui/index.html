@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="studio-token" content="{{ token }}">
+  <title>Playlist to Countdown</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/ui/style.css?v={{ asset_version }}">
+  <script src="/ui/clip-range.js?v={{ asset_version }}" defer></script>
+  <link rel="stylesheet" href="/ui/workspace.css?v={{ asset_version }}">
+  <script src="/ui/playback.js?v={{ asset_version }}" defer></script>
+  <script src="/ui/workspace.js?v={{ asset_version }}" defer></script>
+  <script src="/ui/app.js?v={{ asset_version }}" defer></script>
+</head>
+<body>
+<header class="app-header"><a class="brand" href="/" aria-label="Playlist to Countdown home">Playlist to Countdown</a>  <nav class="steps" aria-label="Compilation workflow">
+    <button data-step="1" class="step active"><span><b class="step-number">1</b> Add playlist</span><small id="step-1-detail">Start with your Spotify link</small></button>
+    <button data-step="2" class="step" disabled><span><b class="step-number">2</b> Get audio</span><small id="step-2-detail">Download your songs</small></button>
+    <button data-step="3" class="step" disabled><span><b class="step-number">3</b> Choose clips</span><small id="step-3-detail">Select clip ranges</small></button>
+    <button data-step="4" class="step" disabled><span><b class="step-number">4</b> Build compilation</span><small id="step-4-detail">Build the video</small></button>
+  </nav><div class="header-tools"><span class="saved" id="save-status" role="status">Changes saved locally</span></div></header>
+<main>
+  <div class="intro"><div><p class="eyebrow">PLAYLIST</p><h1>Load a playlist</h1><p class="muted">Enter a Spotify playlist URL.</p></div></div>
+
+  <div id="notice" class="notice banner banner-note" role="status" hidden><span class="glyph" id="notice-glyph">◈</span><div><h3 id="notice-title">Saved locally</h3><p id="notice-message"></p></div><button aria-label="Dismiss notification" class="close" id="notice-dismiss" type="button">×</button></div>
+  <section id="job-panel" class="job-panel" aria-label="Operation progress" hidden><div class="row"><strong id="job-message"></strong><span id="job-count" class="muted"></span></div><progress id="job-progress" max="100"></progress><div class="job-actions"><span id="job-detail" class="muted fine">Elapsed: 0:00.0</span><button id="cancel-job" class="secondary" type="button">Cancel</button></div><details id="job-errors" hidden><summary>Some items need attention</summary><ul id="job-error-list"></ul></details></section>
+
+  <section id="step-1" class="screen">
+    <div class="welcome panel"><div class="welcome-icon" aria-hidden="true">♫</div><p class="eyebrow">FIRST, YOUR SONGS</p><h2>What’s in your top 100?</h2><p class="muted">Make a Spotify playlist with your #1 song first.<br>We’ll turn it around so the countdown ends on your favorite.</p>
+      <form id="playlist-form"><label for="playlist-url">Spotify playlist link</label><div class="input-action"><input id="playlist-url" type="text" placeholder="https://open.spotify.com/playlist/…" required autocomplete="off"><button class="primary" id="load-playlist" type="submit">Load songs →</button></div></form>
+      <p class="fine muted" id="new-project-note">Start fresh. Previously downloaded audio can be reused.</p>
+    </div>
+    <section id="auth-panel" class="panel auth-panel" hidden><h3>Connect to Spotify</h3><p id="auth-instruction">Sign in with the account that owns your playlist, then return here.</p><p id="auth-setup" hidden>One-time setup: in your <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer">Spotify app settings</a>, add this redirect address: <code id="auth-redirect"></code>. Save it, then connect below.</p><a id="spotify-login" class="button primary" target="_blank" rel="noreferrer">Connect Spotify ↗</a><details><summary>Signed in, but didn’t return here?</summary><p class="muted">Copy the complete address from the page Spotify sent you to, even if that page did not load.</p><form id="auth-form"><label for="auth-url">Address after sign-in</label><input id="auth-url" type="text" autocomplete="off" required><button class="secondary" type="submit">Finish connecting</button></form></details></section>
+  </section>
+
+  <section id="step-2" class="screen" hidden>
+    <div class="panel download-panel"><div><p class="eyebrow">AUDIO</p><h2 id="audio-count">Download audio</h2><p class="muted">Download audio files that are missing from this project.</p></div><div class="actions"><button id="download-all" class="primary">Download missing audio</button><button id="go-clips" class="secondary">Choose clips →</button></div></div>
+    <p class="section-note muted">Give each download a listen. If it’s the wrong version, you can add your own MP3 in the clip editor.</p>
+    <div class="panel"><div class="table-wrap"><table><thead><tr><th>Rank</th><th>Song</th><th>Audio</th><th><span class="sr-only">Action</span></th></tr></thead><tbody id="download-list"></tbody></table></div></div>
+  </section>
+
+<section class="screen" hidden id="step-3">
+<div class="workspace">
+  <aside class="song-panel">
+    <div class="panel-heading"><p class="eyebrow">YOUR COUNTDOWN</p><h2 class="sr-only" id="workspace-project">Your countdown</h2><p><span id="workspace-total"></span> <span id="rank-range"></span></p></div>
+    <div class="list-footer"><span>Clips included</span><strong id="selection-count"></strong></div>
+    <progress aria-label="Clips selected" id="selection-progress" max="100" value="0"></progress>
+    <div class="song-tools"><div class="list-search"><label class="sr-only" for="song-search">Find a song</label><span aria-hidden="true">⌕</span><input id="song-search" placeholder="Search songs" type="search"/></div><label class="song-filter" for="song-filter"><span>Show</span><select id="song-filter"><option value="all">All songs</option></select></label></div>
+    <p class="filter-match-count muted" id="filter-match-count" aria-live="polite"></p>
+    <div aria-label="Songs" class="song-list" id="song-list"></div>
+    <p class="sidebar-note">Changes save locally.</p>
+  </aside>
+  <section aria-label="Clip editor" class="editor" id="editor">
+    <div class="workspace-heading"><div><h1>Choose clips</h1></div><button id="review-export" class="primary">Review &amp; build →</button></div>
+    <header class="clip-context"><div class="record-art" id="record-art"><small>No image available</small><img alt="" hidden id="track-artwork"/></div><div class="track-heading"><p class="eyebrow" id="editor-rank"></p><div><h2 id="track-title"></h2><p class="muted" id="track-artist"></p></div></div><div class="track-actions"><span class="save-indicator saved" hidden id="editor-save-status" role="status" aria-live="polite">Saved</span><span class="track-nav"><button class="next-action" hidden id="previous-track" type="button">← Prev song</button><button class="next-action" hidden id="next-track" type="button">Next song →</button></span></div></header>
+    <div class="clip-workbench">
+      <div class="editing-column">
+        <section aria-labelledby="excerpt-heading" class="panel excerpt-section">
+          <div class="section-head"><h3 id="excerpt-heading"><span class="section-number">01</span>Choose the excerpt</h3><span class="muted">Source · <span id="song-length">—</span></span></div>
+          <div id="player-section">
+            <div class="wave-wrap"><canvas aria-label="Song waveform showing selected excerpt" height="105" id="waveform"></canvas><span class="wave-status" id="wave-status">Loading waveform…</span></div>
+            <div class="wave-labels"><span>0:00</span><span id="clip-label">Choose a starting point</span><span id="source-end"></span></div>
+            <audio aria-label="Play and scrub through this song" id="song-audio" preload="metadata"></audio>
+            <div class="transport"><button id="source-play" aria-label="Play source audio">▶</button><span id="playhead" class="muted">At 0:00</span><label class="toggle playback-toggle"><input checked id="stop-at-end" type="checkbox"/> Stop at clip end</label><span class="spacer"></span><button class="secondary" id="set-start">Set start here</button><button class="secondary" id="set-end">Set end here</button></div>
+            <div class="time-fields">
+              <label for="clip-start">Start <span class="field-hint">seconds</span><input autocomplete="off" id="clip-start" inputmode="decimal" min="0" step="0.1" type="number" value="0"/></label>
+              <label for="clip-end">End <span class="field-hint">seconds</span><input autocomplete="off" id="clip-end" inputmode="decimal" min=".5" step="0.1" type="number" value="10"/></label>
+              <label for="clip-duration">Duration <span class="field-hint">seconds</span><input autocomplete="off" id="clip-duration" inputmode="decimal" min=".5" step="0.1" type="number" value="10"/></label>
+              <label class="toggle length-toggle"><input checked id="length-lock" type="checkbox"/> Keep clip length fixed</label>
+            </div>
+            <label class="position-control">Clip position<input id="clip-position" type="range" min="0" max="1" value="0" step=".1"/><span class="muted">Drag to move the whole clip</span></label>
+          </div>
+          <div class="empty-audio" hidden id="missing-audio"><div class="missing-symbol">♫</div><h3>This song needs audio</h3><p class="muted">Download it in step 2, or add an MP3 below.</p><button class="secondary" id="missing-download">Go to downloads →</button></div>
+        </section>
+        <section aria-labelledby="card-heading" class="panel card-section">
+          <div class="section-head"><h3 id="card-heading"><span class="section-number">02</span>Song card</h3><span class="muted">Default visual</span></div>
+          <div class="card-copy-fields"><label for="card-title-input">Song title<input id="card-title-input" maxlength="500" placeholder="Song title" type="text"/></label><label for="card-artist-input">Artist<input id="card-artist-input" maxlength="500" placeholder="Primary artist" type="text"/></label><label for="track-year">Year<input id="track-year" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="YYYY" type="text"/></label></div>
+          <label class="card-description" for="track-description">Description <span class="field-hint">Optional · line breaks preserved</span><textarea id="track-description" maxlength="2000" placeholder="A few words about this song…" rows="3"></textarea></label>
+          <div class="media-group">
+            <div class="media-heading"><span class="media-thumb" id="album-thumb" aria-hidden="true">▧</span><div><h4>Album artwork</h4><p class="muted fine" id="album-artwork-status"></p></div></div>
+            <div class="media-controls"><label class="file-picker">Upload image<input accept="image/jpeg,image/png,image/webp" id="album-artwork-upload" type="file"/></label><label class="url-field" for="album-artwork-url">or URL<input id="album-artwork-url" placeholder="Paste image URL" type="url"/></label><button class="secondary" id="save-album-artwork" type="button">Use URL</button><button class="secondary" hidden id="restore-album-artwork" type="button">Restore original</button></div>
+          </div>
+          <div class="media-group">
+            <div class="media-heading"><span class="media-thumb" id="performance-thumb" aria-hidden="true">▧</span><div><h4>Performance image</h4><p class="muted fine" id="performance-image-status"></p></div></div>
+            <div class="media-controls"><label class="file-picker">Upload image<input accept="image/jpeg,image/png,image/webp" id="performance-image-upload" type="file"/></label><label class="url-field" for="performance-image-url">or URL<input id="performance-image-url" placeholder="Paste image URL" type="url"/></label><button class="secondary" id="save-performance-image" type="button">Use URL</button><button class="secondary" hidden id="remove-performance-image" type="button">Remove image</button></div>
+          </div>
+        </section>
+        <details class="panel replace-audio" id="audio-replacement"><summary><span><h3><span class="section-number">04</span> Replace audio or recover a missing song</h3><small>Use an MP3 or a YouTube link when a song needs new audio.</small></span><span class="details-toggle" id="audio-replacement-toggle">Show controls</span></summary><div class="replace-audio-body"><div class="media-group audio-media-group"><div class="media-heading"><span class="media-thumb audio-thumb" aria-hidden="true">♫</span><div><h4>Audio source</h4><p class="muted fine" id="audio-replacement-status">Choose a local MP3 or replace the current audio from YouTube.</p></div></div><div class="media-controls"><label class="file-picker">Upload MP3<input accept=".mp3,audio/mpeg" id="upload-audio" type="file"/></label><label class="url-field" for="source-url">or URL<input id="source-url" placeholder="https://www.youtube.com/watch?v=…" type="url"/></label><button class="secondary" disabled="" id="replace-audio-button" type="button">Use URL</button></div><p class="muted fine" id="source-url-hint">Paste a full YouTube link. It saves automatically, then use the button to replace the audio.</p></div></div></details>
+      </div>
+      <div class="preview-column">
+        <section aria-label="Video card preview" class="panel workspace-preview"><div class="row"><h3>Video preview</h3><span class="muted fine">16:9</span></div><div class="card-stage"><iframe id="workspace-song-preview" scrolling="no" title="Song card preview"></iframe><iframe hidden="" id="workspace-text-preview" scrolling="no" title="Text frame preview"></iframe><p id="workspace-preview-status" role="status">Loading card preview…</p><button aria-label="Play preview" class="preview-toggle" id="preview-toggle" type="button"></button></div><p class="muted fine" id="workspace-preview-caption">Song card · scrub or play the excerpt to preview text frames</p><div class="actions preview-controls"><button class="secondary" id="preview-clip">▶ Preview clip</button><button class="secondary" id="preview-card" type="button">Open card ↗</button></div><div class="transition-preview"><button class="secondary" disabled="" id="preview-transition" type="button">▶ Preview with neighboring clips</button><p class="muted fine" id="transition-hint">Keep a clip before and after this song to preview the transition.</p><audio aria-label="Transition preview with neighboring clips" controls="" hidden="" id="transition-audio" preload="none"></audio></div></section>
+        <details aria-labelledby="visual-frames-heading" class="panel visual-frames optional-details" id="visual-frames-details" open=""><summary><span><h3 id="visual-frames-heading"><span class="section-number">03</span> Text frame</h3><small>Optional. Text replaces the song card during selected intervals.</small></span><span class="details-toggle" id="visual-frames-toggle">Hide details</span></summary><div class="optional-details-body"><p aria-live="polite" class="inline-error" id="visual-frames-error" role="alert" hidden></p><button class="secondary" id="add-text-frame" type="button">+ Add text frame</button><div id="timeline-ruler" class="timeline-ruler"></div><div aria-label="Clip visual timeline" class="visual-timeline" id="visual-timeline"></div><div class="timeline-legend"><span>▧ Song card fills the gaps</span><span>■ Text frame</span></div><div class="text-frame-list" id="text-frame-list"></div><p class="muted fine">Times are relative to this clip and precise to 0.01 seconds. Text frames cannot overlap; the song card fills the remaining intervals.</p></div></details>
+      </div>
+    </div>
+    <p id="settings-summary" class="muted fine"></p>
+  </section>
+</div>
+</section>
+
+  <section id="step-4" class="screen" hidden>
+    <p id="artwork-warning" class="artwork-warning" hidden></p>
+     <div class="export-layout"><section class="panel export-options"><p class="eyebrow">EXPORT</p><h2>Build video</h2><p id="export-readiness" class="muted"></p><form id="settings-form"><div class="clip-fields"><label for="default-duration" title="Used when a song does not have its own clip length. It does not replace a length you already set for a song.">Default clip length (seconds)<input id="default-duration" type="number" min="0.5" max="120" step="0.5" required></label><label for="crossfade" title="Overlaps the end of one audio clip with the start of the next. A longer crossfade makes the finished compilation shorter.">Crossfade (seconds)<input id="crossfade" type="number" min="0" max="10" step="0.1" required></label><label for="preview-context" title="Used only for the neighboring-clips preview in the editing workspace. It does not change the exported video.">Neighbor preview (seconds per side)<input id="preview-context" type="number" min="0.5" max="10" step="0.5" required></label><label for="video-song-count" title="Limits how many included songs are exported. Use 0 to export every included song.">Songs to include (0 = all)<input id="video-song-count" type="number" min="0" max="500" step="1" required></label></div><label class="animation-option" title="Adds slow motion to performance images in the video. It increases rendering time; cards without a performance image are unchanged."><input id="video-animation" type="checkbox"> Animate performance images</label><p class="muted fine">Off builds faster with static cards. On adds slow photo motion to the exported video.</p><label class="zoom-option" for="video-zoom" title="Sets how far each performance image moves while animation is enabled.">Zoom amount <output id="video-zoom-value">5%</output><input id="video-zoom" type="range" min="0" max="25" step="1" value="5"></label><p class="muted fine">Controls how far the performance image zooms during each card.</p></form><p class="muted fine">Default clip length, crossfade, and song count are saved when you build. Neighbor preview updates immediately.</p><hr><div class="estimate"><span>Estimated runtime</span><strong id="runtime">—</strong></div><div class="build-actions"><button id="build-video" class="primary">Build video →</button></div><p class="muted fine">Set Songs to include to 0 to include every included song.</p></section><section class="panel export-results"><h2>Video output</h2><div id="export-files"></div><div id="thumbnail-output"></div></section></div>
+  </section>
+  <footer><span>Local workspace · Your clip choices stay on this computer</span><span id="footer-count"></span></footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+:root{--ink:#f5f3ee;--muted:#d1d2cc;--night:#111215;--accent:#ff714b}
+*{box-sizing:border-box}html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:var(--night);color:var(--ink);font-family:"DM Sans",Arial,sans-serif}
+.video-frame{position:relative;isolation:isolate;display:grid;grid-template-columns:32% 1fr;grid-template-rows:auto 1fr;grid-template-areas:'rank rank' 'album copy';gap:35px 5%;width:1920px;height:1080px;padding:96px;overflow:hidden;background:var(--night)}
+.performance{--fade-left-start:0%;--fade-left-end:16%;--fade-right-start:84%;--fade-right-end:100%;--fade-top-start:0%;--fade-top-end:10%;--fade-bottom-start:90%;--fade-bottom-end:100%;position:absolute;z-index:-2;inset:0 0 0 24%;overflow:hidden;background:#202020;-webkit-mask-image:linear-gradient(90deg,transparent 0 var(--fade-left-start),#000 var(--fade-left-end) var(--fade-right-start),transparent var(--fade-right-end) 100%),linear-gradient(180deg,transparent 0 var(--fade-top-start),#000 var(--fade-top-end) var(--fade-bottom-start),transparent var(--fade-bottom-end) 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent 0 var(--fade-left-start),#000 var(--fade-left-end) var(--fade-right-start),transparent var(--fade-right-end) 100%),linear-gradient(180deg,transparent 0 var(--fade-top-start),#000 var(--fade-top-end) var(--fade-bottom-start),transparent var(--fade-bottom-end) 100%);mask-composite:intersect}.performance img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 35%;filter:grayscale(1) contrast(1.1);transform:scale(1.025)}
+.video-frame::after{position:absolute;z-index:-1;inset:0;content:"";background:linear-gradient(90deg,#111215 3%,#111215bd 46%,#11121535),linear-gradient(0deg,#111215f5,#11121565 65%)}
+.frame-label{grid-area:rank;position:relative;z-index:1;transform:translateY(-8px);color:var(--accent);font:500 110px/.9 "DM Mono",monospace;letter-spacing:-.09em;text-shadow:0 3px 0 #060606,0 7px 12px rgba(0,0,0,.45)}.frame-label::before{display:block;margin-bottom:12px;color:var(--muted);font:25px/1 "DM Mono",monospace;letter-spacing:.18em;content:"NUMBER"}
+.album-cover{grid-area:album;position:relative;z-index:1;align-self:end;margin:0;overflow:hidden;transform:translateY(-8px)}.album-cover img{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:cover}.album-cover.empty{visibility:hidden}
+.song-details{grid-area:copy;position:relative;z-index:1;align-self:end;display:flex;flex-direction:column;justify-content:flex-end;width:100%;height:665px;min-width:0;min-height:0;overflow:hidden;padding:35px 0 3px;transform:translateY(-8px)}.artist{display:-webkit-box;flex:0 0 auto;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin:0 0 4%;color:var(--accent);font-size:48px;line-height:1.1;text-shadow:0 2px 0 #080808,0 5px 10px rgba(0,0,0,.42)}.year{white-space:nowrap}.year:not(:empty)::before{content:" · ";color:var(--muted)}
+ h1{max-width:100%;flex:0 0 auto;margin:0;color:var(--ink);font-family:"Playfair Display",Georgia,serif;font-size:116px;font-weight:600;line-height:1.1;letter-spacing:-.07em;overflow-wrap:anywhere;text-shadow:0 4px 0 #060606,0 9px 14px rgba(0,0,0,.55)}.description-wrap{flex:0 0 auto;max-width:100%;margin-top:32px;padding-top:4%;border-top:1px solid rgba(245,241,233,.25)}.description{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;white-space:pre-line;margin:0;color:#e0e0dd;font-size:34px;line-height:1.5;text-shadow:0 2px 5px rgba(0,0,0,.28)}
+ .video-frame.flip{grid-template-columns:1fr 32%;grid-template-areas:'rank rank' 'copy album'}.video-frame.flip .performance{inset:0 24% 0 0}.video-frame.flip .frame-label{justify-self:end;text-align:right}.video-frame.flip .song-details{text-align:right;align-items:flex-end}.video-frame.flip .artist,.video-frame.flip h1,.video-frame.flip .description-wrap{width:100%}
+</style></head><body><main class="video-frame" id="frame"><figure class="performance"><img id="performance-image" alt=""></figure><div class="frame-label" id="rank"></div><section class="album-cover"><img id="artwork" alt=""></section><section class="song-details" id="copy"><p class="artist" id="artist"><span id="artist-name"></span><span class="year" id="year"></span></p><h1 id="title"></h1><div class="description-wrap" id="description-wrap"><p class="description" id="description"></p></div></section></main>
+<script>
+const $=id=>document.getElementById(id);
+// Layout coordinates stay in production pixels even when the preview is scaled.
+function insideCopy(element){const copy=$('copy');return element.offsetTop>=-1&&element.offsetTop+element.offsetHeight<=copy.clientHeight+1&&element.offsetLeft>=-1&&element.offsetLeft+element.offsetWidth<=copy.clientWidth+1}
+function fitTitle(){
+  const title=$('title'),artist=$('artist'),copy=$('copy'),description=$('description-wrap');
+  // Preserve readable display type; cap exceptionally long titles at two lines.
+  let size=116;
+  title.style.display='block';title.style.webkitLineClamp='';title.style.overflow='';
+  title.style.fontSize=`${size}px`;
+  const tooTall=()=>title.offsetHeight>parseFloat(getComputedStyle(title).lineHeight)*2+1||artist.offsetHeight+32+title.offsetHeight+32+description.offsetHeight>copy.clientHeight;
+  while(size>72&&tooTall()){size-=2;title.style.fontSize=`${size}px`;}
+  title.style.display='-webkit-box';title.style.webkitBoxOrient='vertical';
+  title.style.webkitLineClamp='2';title.style.overflow='hidden';
+}
+function fitArtist(){const artist=$('artist');let size=48;artist.style.fontSize=`${size}px`;while(size>24&&!insideCopy(artist)){size-=2;artist.style.fontSize=`${size}px`;}}
+function resetPerformanceFade(){const frame=$('performance-image').closest('.performance');for(const property of ['--fade-left-start','--fade-left-end','--fade-right-start','--fade-right-end','--fade-top-start','--fade-top-end','--fade-bottom-start','--fade-bottom-end'])frame.style.removeProperty(property)}
+function detectAlphaBounds(image){
+  const maximum=1024,scale=Math.min(1,maximum/Math.max(image.naturalWidth,image.naturalHeight));
+  const width=Math.max(1,Math.round(image.naturalWidth*scale)),height=Math.max(1,Math.round(image.naturalHeight*scale));
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(image,0,0,width,height);
+  const pixels=context.getImageData(0,0,width,height).data;let left=width,top=height,right=-1,bottom=-1;
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++)if(pixels[(y*width+x)*4+3]>8){left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x);bottom=Math.max(bottom,y)}
+  return right<left?null:{left:left/width,top:top/height,right:(right+1)/width,bottom:(bottom+1)/height};
+}
+function mapAlphaBounds(image,bounds){
+  const frame=image.closest('.performance'),width=frame.clientWidth,height=frame.clientHeight;
+  const scale=Math.max(width/image.naturalWidth,height/image.naturalHeight),paintWidth=image.naturalWidth*scale,paintHeight=image.naturalHeight*scale;
+  const offsetX=(width-paintWidth)*.5,offsetY=(height-paintHeight)*.35,zoom=1.025;
+  const mapX=value=>50+((offsetX+value*paintWidth)/width*100-50)*zoom;
+  const mapY=value=>50+((offsetY+value*paintHeight)/height*100-50)*zoom;
+  return {left:mapX(bounds.left),top:mapY(bounds.top),right:mapX(bounds.right),bottom:mapY(bounds.bottom)};
+}
+function updatePerformanceFade(image,mime){
+  resetPerformanceFade();if(!image.src||!image.naturalWidth)return;
+  const sourceType=(mime||(/^data:([^;,]+)/.exec(image.currentSrc||image.src)||[])[1]||'').toLowerCase();
+  if(sourceType!=='image/png'&&sourceType!=='image/webp')return;
+  try{
+    const bounds=detectAlphaBounds(image);if(!bounds)return;
+    const visible=mapAlphaBounds(image,bounds),frame=image.closest('.performance'),clamp=value=>Math.max(0,Math.min(100,value));
+    const left=clamp(visible.left),right=clamp(visible.right),top=clamp(visible.top),bottom=clamp(visible.bottom);
+    const middleX=(left+right)/2,middleY=(top+bottom)/2;
+    frame.style.setProperty('--fade-left-start',`${left}%`);frame.style.setProperty('--fade-left-end',`${Math.min(middleX,left+16)}%`);
+    frame.style.setProperty('--fade-right-start',`${Math.max(middleX,right-16)}%`);frame.style.setProperty('--fade-right-end',`${right}%`);
+    frame.style.setProperty('--fade-top-start',`${top}%`);frame.style.setProperty('--fade-top-end',`${Math.min(middleY,top+10)}%`);
+    frame.style.setProperty('--fade-bottom-start',`${Math.max(middleY,bottom-10)}%`);frame.style.setProperty('--fade-bottom-end',`${bottom}%`);
+  }catch(_){resetPerformanceFade()}
+}
+ window.renderCard=async data=>{document.title=`#${data.rank} ${data.title||''}`;$('frame').classList.toggle('flip',data.layout==='alternate');$('rank').textContent=String(data.rank).padStart(2,'0');$('title').textContent=data.title||'';$('artist-name').textContent=data.artist||'';$('year').textContent=data.year||'';$('description').textContent=data.description||'';const image=$('artwork'),album=$('artwork').closest('.album-cover'),performance=$('performance-image');resetPerformanceFade();image.src=data.artwork||'';image.hidden=!data.artwork;album.classList.toggle('empty',!data.artwork);performance.src=data.performanceImage||'';performance.hidden=!data.performanceImage;try{await Promise.race([Promise.all([data.artwork?image.decode():Promise.resolve(),data.performanceImage?performance.decode():Promise.resolve()]),new Promise(resolve=>setTimeout(resolve,5000))])}catch(_){}updatePerformanceFade(performance,data.performanceMime);await document.fonts.ready;$('artist').style.fontSize='48px';fitTitle();fitArtist();};
+window.cardOverflow=()=>[['title',$('title')],['artist',$('artist')],['description',$('description')]].filter(([,element])=>!insideCopy(element)&&element.textContent.trim()).map(([name])=>name);
+window.renderCard({rank:6,title:'Demo song',artist:'Demo artist',year:'2026',description:'This is a live template preview. The production renderer replaces this content with the selected song.',artwork:''});
+</script></body></html>

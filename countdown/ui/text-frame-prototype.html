@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Playlist to Countdown — text frame prototype</title>
+  <style>
+    :root{--ink:#f5f3ee;--muted:#d1d2cc;--night:#111215;--accent:#ff714b}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#0b0c0e;color:var(--ink);font-family:"DM Sans",Arial,sans-serif}
+    .preview-shell{min-height:100vh;display:grid;place-items:center;padding:28px;background:radial-gradient(circle at 48% 25%,#29201e 0,#111215 42%,#090a0b 100%);overflow:hidden}
+    .canvas{position:relative;width:1920px;height:1080px;flex:none;overflow:hidden;background:var(--night);box-shadow:0 25px 70px #0009}
+    .text-frame{position:relative;isolation:isolate;display:grid;place-items:center;width:1920px;height:1080px;padding:150px 220px;overflow:hidden;background:var(--night)}
+    .text-frame::before{content:"";position:absolute;z-index:-2;inset:0;background:radial-gradient(ellipse 75% 90% at 89% 50%,#563127 0%,#231b1a 40%,#111215 72%)}
+    .text-frame::after{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(90deg,#111215 2%,#111215db 41%,#11121536 100%),linear-gradient(0deg,#111215ee,#11121522 74%)}
+    .copy{width:100%;max-width:1400px;min-width:0;text-align:center}
+    h1{display:-webkit-box;max-width:100%;margin:0;color:var(--ink);font:600 112px/1.12 "Playfair Display",Georgia,serif;letter-spacing:-.055em;overflow:hidden;overflow-wrap:anywhere;text-shadow:0 4px 0 #060606,0 9px 14px #0009;-webkit-box-orient:vertical;-webkit-line-clamp:4}
+    .controls{position:fixed;z-index:2;left:24px;bottom:22px;display:flex;gap:8px;flex-wrap:wrap}.controls button{border:1px solid #ffffff3b;background:#111215e8;color:var(--ink);border-radius:8px;padding:9px 12px;font:600 13px/1 "DM Sans",Arial,sans-serif;cursor:pointer}.controls button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#111215}.controls button:focus-visible{outline:3px solid #f5f3ee;outline-offset:3px}
+    @media(max-width:700px){.preview-shell{padding:0}.controls{left:12px;bottom:12px}.controls button{padding:8px 9px;font-size:12px}}
+  </style>
+</head>
+<body>
+  <div class="preview-shell"><div class="canvas"><main class="text-frame" id="frame"><section class="copy"><h1 id="headline">Before the beat drops.</h1></section></main></div></div>
+  <nav class="controls" aria-label="Text-frame examples">
+    <button type="button" data-example="0" aria-pressed="true">One word</button>
+    <button type="button" data-example="1" aria-pressed="false">Medium</button>
+    <button type="button" data-example="2" aria-pressed="false">30 words</button>
+  </nav>
+  <script>
+    const examples=[
+      {headline:'Breathe.'},
+      {headline:'Before the beat drops.'},
+      {headline:'This is the song I kept returning to on late drives home, when the city was quiet and every red light felt like a little more time to listen.'}
+    ];
+    const ids=['headline'];
+    const fitHeadline=()=>{const headline=document.getElementById('headline');const words=headline.textContent.trim().split(/\s+/).length;let size=words<5?104:words<14?96:words<24?82:68;headline.style.fontSize=`${size}px`;while(size>62&&headline.scrollHeight>size*1.12*4+2){size-=2;headline.style.fontSize=`${size}px`;}};
+    const render=i=>{const data=examples[i];ids.forEach(id=>document.getElementById(id).textContent=data[id]);fitHeadline();document.querySelectorAll('[data-example]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.example)===i)));};
+    document.querySelectorAll('[data-example]').forEach(button=>button.addEventListener('click',()=>render(Number(button.dataset.example))));
+    const scale=()=>{const canvas=document.querySelector('.canvas'),availableWidth=innerWidth-56,availableHeight=innerHeight-56,ratio=Math.min(availableWidth/1920,availableHeight/1080);canvas.style.transform=`scale(${ratio})`;canvas.style.margin=`${(1080*ratio-1080)/2}px ${(1920*ratio-1920)/2}px`;};addEventListener('resize',scale);scale();render(0);
+  </script>
+</body>
+</html>
